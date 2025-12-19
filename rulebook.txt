@@ -1,0 +1,144 @@
+## Gifts Under Siege — Quick Rules (English)
+
+A fast interactive card game using **Magic: The Gathering basic lands** as resources. Steal gifts, lock them down, and race to the most points.
+
+---
+
+# 1) Goal
+
+Collect gifts worth the most points by the end of the game.
+
+**Scoring**
+
+* Class I gift = **1 point**
+* Class II gift = **2 points**
+* Class III gift = **3 points**
+
+---
+
+# 2) Components
+
+* A shared deck of **basic land cards** (any colors mixed).
+* Physical **gift items** (or gift cards), each labeled with:
+
+  * a **color** (W/U/B/R/G)
+  * a **class** (I / II / III)
+* **Lock tokens** (dice/coins) to track how protected a gift is.
+* 4 **Building** cards (any MTG cards with these building rules written on them).
+
+---
+
+# 3) Setup
+
+1. Reveal **8 gifts** face-up in the center (for 7–8 players).
+2. Shuffle all basic lands into one **shared deck**.
+3. Each player draws **5 lands** as their opening hand.
+4. Each player starts with **0 lands in play** and **no buildings**.
+
+---
+
+# 4) Gift Costs (Class + Color Requirement)
+
+To **claim** or **steal** a gift, you must pay its **mana cost** using lands **in play**, and you must meet the **color requirement**.
+
+* **Class I:** pay **3 mana total**, including **at least 2** mana of the gift’s color
+* **Class II:** pay **5 mana total**, including **at least 3** mana of the gift’s color
+* **Class III:** pay **7 mana total**, including **at least 4** mana of the gift’s color
+
+**Mana comes only from lands you have played** (tapped as in Magic).
+
+**Land limit:** you may have at most **10 lands in play**.
+
+---
+
+# 5) Locks and Ownership
+
+Each gift has **0–5 Locks**.
+
+* When you **claim** a gift, it enters your area with **1 Lock**.
+* A gift with **5 Locks** is **Sealed** and **cannot be stolen**.
+
+---
+
+# 6) Paying Locks When Stealing (Hand matters!)
+
+When you steal a gift with **L Locks**, you must also pay a “lock cost” by **discarding L land cards from your hand**.
+
+* Each discarded land counts as **1** (color does not matter for lock payment).
+
+---
+
+# 7) Turn Structure
+
+On your turn, do the following in order:
+
+### 1) Draw
+
+Draw **1 land** from the shared deck.
+
+### 2) Play a Land
+
+You may play **1 land** from your hand (if you have fewer than 10 lands in play).
+
+### 3) Take ONE Main Action
+
+Choose exactly **one**:
+
+**A) Claim a Gift**
+Pay its mana + color requirement. Take it. Add **1 Lock** to it.
+
+**B) Steal a Gift** 😈
+Choose an opponent’s gift that is not Sealed (Locks < 5).
+Pay its mana + color requirement, then discard lands from hand equal to its current Locks. Take it.
+*(Stealing does not add locks by default.)*
+
+**C) Wrap (Add Locks)**
+Choose one of your gifts. Discard **1 land from your board** → add **+1 Lock** (max 5).
+
+**D) Build a Building**
+Pay the building cost and place it in your area.
+You may have **at most 2 Buildings**. You can substitute existing buildings with new ones.
+
+**E) Draw Extra**
+Draw **1 additional land**.
+
+### 4) Hand Limit
+
+At end of your turn, if you have more than **7** cards in hand, discard down to **7**.
+
+---
+
+# 8) Buildings (4)
+
+Recommended building cost: **4 mana total**, including **at least 2** mana of the building’s color.
+
+You may have **only 2 building**.
+
+**1) Thief’s Gloves (Black)**
+When you steal, reduce the lock discard by up to **2**:
+you discard **max(0, Locks − 2)** instead of Locks.
+
+**2) Crowbar (Red)**
+After you successfully steal a gift, you may add **+1 Lock** to that stolen gift (max 5).
+
+**3) Reinforced Ribbon (Green)**
+When you use Wrap, you add **+2 Locks** instead of +1 (max 5).
+
+**4) Supply Warehouse (Blue)**
+When you choose the Draw Extra action, draw **2** lands instead of 1.
+
+**5) Inviolable Coffer (White)**
+When you claim a gift, it enters your board with **2 Locks** instead of 1.
+
+---
+
+# 9) Ending the Game
+
+Play until either:
+
+* A timer ends (**25–30 minutes** recommended), or
+* You run out of available gifts to refill the display.
+
+Then everyone totals points from their gifts. Highest score wins.
+
+---
