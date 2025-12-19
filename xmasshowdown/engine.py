@@ -67,7 +67,14 @@ class GameEngine:
         self.state.gifts_display = [g for g in self.state.gifts_display if g.gift_id != gift_id]
         self.state.turn.has_taken_action = True
 
-    def steal_gift(self, player_id: str, gift_id: str, add_lock: bool = False) -> None:
+    def steal_gift(
+        self,
+        player_id: str,
+        gift_id: str,
+        *,
+        add_lock: bool = False,
+        discard_indices: Optional[List[int]] = None,
+    ) -> None:
         self._require_turn_action(player_id)
         player = self._find_player(player_id)
         gift, owner = self._find_owned_gift(gift_id)
@@ -82,8 +89,19 @@ class GameEngine:
             discard_count = max(0, discard_count - 2)
         if len(player.hand) < discard_count:
             raise GameRuleError("Not enough cards in hand to pay lock cost.")
-        for _ in range(discard_count):
-            player.hand.pop(0)
+        if discard_indices is None:
+            for _ in range(discard_count):
+                player.hand.pop(0)
+        else:
+            unique_indices = sorted(set(discard_indices), reverse=True)
+            if len(unique_indices) != discard_count:
+                raise GameRuleError("Incorrect number of discard selections.")
+            if unique_indices and (unique_indices[0] >= len(player.hand) or unique_indices[-1] < 0):
+                raise GameRuleError("Discard selection out of range.")
+            for index in unique_indices:
+                if index < 0 or index >= len(player.hand):
+                    raise GameRuleError("Discard selection out of range.")
+                player.hand.pop(index)
         owner.gifts = [g for g in owner.gifts if g.gift_id != gift_id]
         gift.owner_id = player_id
         if add_lock and player.building == BuildingType.CROWBAR:
@@ -110,16 +128,31 @@ class GameEngine:
         player.building = building
         self.state.turn.has_taken_action = True
 
-    def draw_extra(self, player_id: str) -> None:
+    def recycle(self, player_id: str) -> None:
         self._require_turn_action(player_id)
         player = self._find_player(player_id)
+        if player.pending_discard > 0:
+            raise GameRuleError("You must discard before recycling again.")
         count = 2 if player.building == BuildingType.SUPPLY_WAREHOUSE else 1
         self._draw_cards(player, count)
+        player.pending_discard = 1
         self.state.turn.has_taken_action = True
+
+    def discard_from_hand(self, player_id: str, index: int) -> None:
+        self._require_turn(player_id)
+        player = self._find_player(player_id)
+        if player.pending_discard <= 0:
+            raise GameRuleError("No discard is required.")
+        if index < 0 or index >= len(player.hand):
+            raise GameRuleError("Invalid discard selection.")
+        player.hand.pop(index)
+        player.pending_discard -= 1
 
     def end_turn(self, player_id: str) -> None:
         self._require_turn(player_id)
         player = self._find_player(player_id)
+        if player.pending_discard > 0:
+            raise GameRuleError("You must discard before ending your turn.")
         if len(player.hand) > self.config.hand_limit:
             excess = len(player.hand) - self.config.hand_limit
             for _ in range(excess):
@@ -167,6 +200,7 @@ class GameEngine:
                     for land in viewer.lands_in_play
                 ],
                 "building": viewer.building.value if viewer.building else None,
+                "pending_discard": viewer.pending_discard,
             },
             "deck_count": len(self.state.deck),
         }

@@ -173,6 +173,12 @@ button {
   transition: transform 0.15s ease, box-shadow 0.2s ease;
 }
 
+button:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+  box-shadow: none;
+}
+
 button:active {
   transform: translateY(1px);
 }
@@ -451,6 +457,34 @@ button:active {
   gap: 20px;
 }
 
+.game-layout {
+  display: grid;
+  gap: 20px;
+  grid-template-columns: minmax(220px, 280px) minmax(0, 1fr);
+}
+
+.side-panel {
+  display: grid;
+  gap: 12px;
+}
+
+.game-main {
+  display: grid;
+  gap: 20px;
+}
+
+.game-top {
+  display: grid;
+  gap: 20px;
+  grid-template-columns: minmax(0, 1.3fr) minmax(0, 0.8fr);
+}
+
+.game-bottom {
+  display: grid;
+  gap: 20px;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 0.7fr);
+}
+
 .game-section {
   padding: 16px;
   border-radius: 16px;
@@ -498,6 +532,84 @@ button:active {
   gap: 8px;
 }
 
+.player-icons {
+  display: grid;
+  gap: 6px;
+}
+
+.icon-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+}
+
+.mini-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 700;
+  background: rgba(224, 180, 81, 0.25);
+  color: var(--gold);
+  text-transform: uppercase;
+}
+
+.mini-count {
+  font-size: 11px;
+  color: rgba(246, 241, 232, 0.75);
+}
+
+.icon-card {
+  width: 14px;
+  height: 18px;
+  border-radius: 4px;
+  background: rgba(246, 241, 232, 0.35);
+  border: 1px solid rgba(246, 241, 232, 0.6);
+}
+
+.icon-gift {
+  width: 14px;
+  height: 14px;
+  border-radius: 4px;
+  border: 1px solid rgba(7, 14, 14, 0.4);
+  position: relative;
+  overflow: hidden;
+}
+
+.icon-gift::before,
+.icon-gift::after {
+  content: '';
+  position: absolute;
+  background: rgba(246, 241, 232, 0.6);
+}
+
+.icon-gift::before {
+  width: 2px;
+  height: 100%;
+  left: 50%;
+  top: 0;
+  transform: translateX(-50%);
+}
+
+.icon-gift::after {
+  height: 2px;
+  width: 100%;
+  left: 0;
+  top: 50%;
+  transform: translateY(-50%);
+}
+
+.color-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 999px;
+  border: 1px solid rgba(7, 14, 14, 0.4);
+}
+
 .gift-grid {
   display: grid;
   gap: 12px;
@@ -515,11 +627,46 @@ button:active {
 
 .gift-title {
   font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 
 .gift-meta {
   font-size: 12px;
   color: rgba(207, 227, 227, 0.7);
+}
+
+.cost-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+
+.cost-label {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: rgba(207, 227, 227, 0.6);
+}
+
+.cost-chip {
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 600;
+  background: rgba(246, 241, 232, 0.14);
+  color: rgba(246, 241, 232, 0.9);
+}
+
+.cost-chip--mini {
+  font-size: 10px;
+  padding: 3px 8px;
+}
+
+.cost-chip--color {
+  border: 1px solid rgba(7, 14, 14, 0.35);
 }
 
 .zone-block {
@@ -533,6 +680,33 @@ button:active {
   letter-spacing: 0.12em;
   text-transform: uppercase;
   color: rgba(207, 227, 227, 0.6);
+}
+
+.cost-note {
+  font-size: 12px;
+  color: rgba(207, 227, 227, 0.65);
+  margin-top: 8px;
+}
+
+.discard-panel {
+  padding: 12px;
+  border-radius: 14px;
+  background: rgba(12, 24, 23, 0.7);
+  border: 1px dashed rgba(224, 180, 81, 0.35);
+  display: grid;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.discard-header h4 {
+  margin: 0 0 6px 0;
+  font-size: 15px;
+}
+
+.discard-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
 }
 
 .hand-row,
@@ -556,6 +730,149 @@ button:active {
   color: #14312e;
   padding: 8px 12px;
   font-size: 13px;
+}
+
+.card-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  border: 1px solid rgba(7, 14, 14, 0.35);
+}
+
+.card-chip--tapped {
+  opacity: 0.45;
+  text-decoration: line-through;
+}
+
+.card-chip--selected {
+  box-shadow: 0 0 0 2px rgba(224, 180, 81, 0.7);
+}
+
+.card-chip--W {
+  background: #f4f1e3;
+  color: #3a2f1e;
+}
+
+.card-chip--U {
+  background: #5aaee6;
+  color: #0b2535;
+}
+
+.card-chip--B {
+  background: #434343;
+  color: #f1f1f1;
+}
+
+.card-chip--R {
+  background: #d55644;
+  color: #2a0f0b;
+}
+
+.card-chip--G {
+  background: #56a86c;
+  color: #0d2a16;
+}
+
+.icon-gift--W,
+.color-dot--W {
+  background: #f4f1e3;
+}
+
+.icon-gift--U,
+.color-dot--U {
+  background: #5aaee6;
+}
+
+.icon-gift--B,
+.color-dot--B {
+  background: #434343;
+}
+
+.icon-gift--R,
+.color-dot--R {
+  background: #d55644;
+}
+
+.icon-gift--G,
+.color-dot--G {
+  background: #56a86c;
+}
+
+.building-list {
+  display: grid;
+  gap: 12px;
+}
+
+.building-card {
+  padding: 12px;
+  border-radius: 14px;
+  background: rgba(12, 26, 25, 0.6);
+  border: 1px solid rgba(207, 227, 227, 0.16);
+  display: grid;
+  gap: 10px;
+}
+
+.building-header {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+}
+
+.building-name {
+  font-weight: 600;
+}
+
+.building-meta {
+  font-size: 12px;
+  color: rgba(207, 227, 227, 0.7);
+  margin-top: 4px;
+}
+
+.steal-card {
+  display: grid;
+  gap: 8px;
+  padding: 10px;
+  border-radius: 12px;
+  background: rgba(11, 23, 22, 0.7);
+  border: 1px solid rgba(207, 227, 227, 0.16);
+}
+
+.steal-header {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+}
+
+.steal-title {
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.steal-cost {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+}
+
+.lock-badge {
+  padding: 3px 8px;
+  border-radius: 999px;
+  font-size: 10px;
+  font-weight: 700;
+  background: rgba(224, 180, 81, 0.2);
+  color: var(--gold);
+}
+
+.lock-badge--sealed {
+  background: rgba(177, 56, 45, 0.3);
+  color: #f0a8a2;
 }
 
 .status-line {
@@ -625,5 +942,14 @@ button:active {
   .panel-footer {
     flex-direction: column;
     align-items: flex-start;
+  }
+
+  .game-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .game-top,
+  .game-bottom {
+    grid-template-columns: 1fr;
   }
 }

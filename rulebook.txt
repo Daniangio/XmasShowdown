@@ -99,8 +99,8 @@ Choose one of your gifts. Discard **1 land from your board** → add **+1 Lock**
 Pay the building cost and place it in your area.
 You may have **at most 2 Buildings**. You can substitute existing buildings with new ones.
 
-**E) Draw Extra**
-Draw **1 additional land**.
+**E) Recycle**
+Draw **1 additional land**. Then discard **1 land** from your hand.
 
 ### 4) Hand Limit
 
@@ -125,7 +125,7 @@ After you successfully steal a gift, you may add **+1 Lock** to that stolen gift
 When you use Wrap, you add **+2 Locks** instead of +1 (max 5).
 
 **4) Supply Warehouse (Blue)**
-When you choose the Draw Extra action, draw **2** lands instead of 1.
+When you choose the Recycle action, draw **2** lands instead of 1. Then discard **1** land from your hand.
 
 **5) Inviolable Coffer (White)**
 When you claim a gift, it enters your board with **2 Locks** instead of 1.

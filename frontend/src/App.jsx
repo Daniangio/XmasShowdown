@@ -21,6 +21,41 @@ const BUILDING_LABELS = {
   supply_warehouse: 'Supply Warehouse',
 };
 
+const GIFT_COSTS = {
+  I: { total: 3, color: 2 },
+  II: { total: 5, color: 3 },
+  III: { total: 7, color: 4 },
+};
+
+const BUILDING_COST = { total: 4, color: 2 };
+
+const BUILDING_INFO = [
+  {
+    key: 'thiefs_gloves',
+    color: 'B',
+    name: "Thief's Gloves",
+    effect: 'Steal: discard up to 2 fewer lock cards.',
+  },
+  {
+    key: 'crowbar',
+    color: 'R',
+    name: 'Crowbar',
+    effect: 'After stealing, you may add +1 lock to the stolen gift.',
+  },
+  {
+    key: 'reinforced_ribbon',
+    color: 'G',
+    name: 'Reinforced Ribbon',
+    effect: 'Wrap adds +2 locks instead of +1.',
+  },
+  {
+    key: 'supply_warehouse',
+    color: 'U',
+    name: 'Supply Warehouse',
+    effect: 'Recycle draws 2 lands then discard 1.',
+  },
+];
+
 const buildWsBase = () => {
   if (process.env.REACT_APP_WS_BASE) {
     return process.env.REACT_APP_WS_BASE;
@@ -50,7 +85,7 @@ export default function App() {
   const [roomError, setRoomError] = useState('');
   const [activeGame, setActiveGame] = useState(null);
   const [gameError, setGameError] = useState('');
-  const [selectedBuilding, setSelectedBuilding] = useState('thiefs_gloves');
+  const [stealSelection, setStealSelection] = useState(null);
   const wsRef = useRef(null);
 
   const sendMessage = (payload) => {
@@ -156,6 +191,17 @@ export default function App() {
   };
 
   useEffect(() => {
+    if (!stealSelection || !activeGame) {
+      return;
+    }
+    const gifts = activeGame.players.flatMap((player) => player.gifts || []);
+    const stillExists = gifts.some((gift) => gift.gift_id === stealSelection.giftId);
+    if (!stillExists) {
+      setStealSelection(null);
+    }
+  }, [activeGame, stealSelection]);
+
+  useEffect(() => {
     connect();
     return () => {
       if (wsRef.current) {
@@ -220,11 +266,104 @@ export default function App() {
     const myHand = activeGame.viewer.hand || [];
     const myLands = activeGame.viewer.lands_in_play || [];
     const myBuilding = activeGame.viewer.building;
-    const buildings = Object.keys(BUILDING_LABELS);
     const myPlayer = activeGame.players.find(
       (player) => player.member_id === activeGame.viewer.member_id
     );
     const myGifts = myPlayer ? myPlayer.gifts : [];
+    const pendingDiscard = activeGame.viewer.pending_discard || 0;
+    const isActionBlocked = !isMyTurn || activeGame.turn.has_taken_action;
+    const isLandBlocked = !isMyTurn || activeGame.turn.has_played_land;
+
+    const renderColorChip = (label, color) => (
+      <span className={`card-chip card-chip--${color}`}>{label}</span>
+    );
+
+    const renderCostRow = (total, colorCount, color) => (
+      <div className="cost-row">
+        <span className="cost-label">Cost</span>
+        <span className="cost-chip">{total} mana</span>
+        {colorCount ? (
+          <span className={`cost-chip cost-chip--color card-chip--${color}`}>
+            {colorCount} {color}
+          </span>
+        ) : null}
+      </div>
+    );
+
+    const renderBadge = (label) => <span className="mini-badge">{label}</span>;
+
+    const renderColorDots = (items, limit = 6) => {
+      const visible = items.slice(0, limit);
+      const extra = items.length - visible.length;
+      return (
+        <>
+          {visible.map((item, index) => (
+            <span
+              key={`${item.color}-${index}`}
+              className={`color-dot color-dot--${item.color}`}
+              title={item.color}
+            />
+          ))}
+          {extra > 0 ? <span className="muted">+{extra}</span> : null}
+        </>
+      );
+    };
+
+    const startStealSelection = (gift) => {
+      if (!isMyTurn || isActionBlocked) {
+        return;
+      }
+      const reduction = myBuilding === 'thiefs_gloves' ? 2 : 0;
+      const required = Math.max(0, gift.locks - reduction);
+      if (required === 0) {
+        sendGameAction('steal_gift', { gift_id: gift.gift_id, discard_indices: [] });
+        return;
+      }
+      if (myHand.length < required) {
+        return;
+      }
+      setStealSelection({
+        giftId: gift.gift_id,
+        giftClass: gift.gift_class,
+        giftColor: gift.color,
+        locks: gift.locks,
+        required,
+        selected: [],
+      });
+    };
+
+    const toggleStealDiscard = (index) => {
+      setStealSelection((current) => {
+        if (!current) {
+          return current;
+        }
+        const exists = current.selected.includes(index);
+        let selected;
+        if (exists) {
+          selected = current.selected.filter((value) => value !== index);
+        } else {
+          if (current.selected.length >= current.required) {
+            return current;
+          }
+          selected = [...current.selected, index];
+        }
+        return { ...current, selected };
+      });
+    };
+
+    const confirmSteal = () => {
+      if (!stealSelection) {
+        return;
+      }
+      if (stealSelection.selected.length !== stealSelection.required) {
+        return;
+      }
+      sendGameAction('steal_gift', {
+        gift_id: stealSelection.giftId,
+        discard_indices: stealSelection.selected,
+      });
+      setStealSelection(null);
+    };
 
     return (
       <div className="page">
@@ -251,8 +390,8 @@ export default function App() {
                 </button>
               </div>
             </div>
-            <div className="panel-body game-grid">
-              <div className="game-section">
+            <div className="panel-body game-layout">
+              <aside className="side-panel">
                 <h3>Players</h3>
                 <ul className="player-list">
                   {activeGame.players.map((player) => (
@@ -268,174 +407,325 @@ export default function App() {
                           <span className="you-tag">You</span>
                         ) : null}
                       </div>
-                      <div className="player-meta">
-                        Score {player.score} · Hand {player.hand_count} · Lands{' '}
-                        {player.lands_in_play.length}
-                      </div>
-                      <div className="player-gifts">
-                        {player.gifts.length === 0 ? (
-                          <span className="muted">No gifts yet.</span>
-                        ) : (
-                          player.gifts.map((gift) => (
-                            <span key={gift.gift_id} className="pill">
-                              {gift.color} {gift.gift_class} · Locks {gift.locks}
+                      <div className="player-meta">Score {player.score}</div>
+                      <div className="player-icons">
+                        <div className="icon-row">
+                          {renderBadge('L')}
+                          {renderColorDots(player.lands_in_play)}
+                          <span className="mini-count">{player.lands_in_play.length}</span>
+                        </div>
+                        <div className="icon-row">
+                          {renderBadge('H')}
+                          {Array.from({ length: Math.min(player.hand_count, 5) }).map((_, index) => (
+                            <span key={index} className="icon-card" />
+                          ))}
+                          {player.hand_count > 5 ? (
+                            <span className="muted">+{player.hand_count - 5}</span>
+                          ) : null}
+                          <span className="mini-count">{player.hand_count}</span>
+                        </div>
+                        <div className="icon-row">
+                          {renderBadge('G')}
+                          {player.gifts.length === 0 ? (
+                            <span className="muted">No gifts</span>
+                          ) : (
+                            player.gifts.map((gift) => (
+                              <span
+                                key={gift.gift_id}
+                                className={`icon-gift icon-gift--${gift.color}`}
+                                title={`${gift.color} ${gift.gift_class}`}
+                              />
+                            ))
+                          )}
+                          <span className="mini-count">{player.gifts.length}</span>
+                        </div>
+                        <div className="icon-row">
+                          {renderBadge('B')}
+                          {player.building ? (
+                            <span className="pill pill--host">
+                              {BUILDING_LABELS[player.building]}
                             </span>
-                          ))
-                        )}
+                          ) : (
+                            <span className="muted">No building</span>
+                          )}
+                        </div>
                       </div>
-                      {isMyTurn && player.member_id !== activeGame.viewer.member_id
-                        ? player.gifts.map((gift) => (
-                            <button
-                              key={`${gift.gift_id}-steal`}
-                              type="button"
-                              className="ghost"
-                              disabled={gift.sealed || activeGame.turn.has_taken_action}
-                              onClick={() => sendGameAction('steal_gift', { gift_id: gift.gift_id })}
-                            >
-                              Steal {gift.gift_class}
-                            </button>
-                          ))
+                      {player.member_id !== activeGame.viewer.member_id
+                        ? player.gifts.map((gift) => {
+                            const reduction = myBuilding === 'thiefs_gloves' ? 2 : 0;
+                            const discardNeeded = Math.max(0, gift.locks - reduction);
+                            const canDiscard = myHand.length >= discardNeeded;
+                            return (
+                              <div key={`${gift.gift_id}-steal`} className="steal-card">
+                                <div className="steal-header">
+                                  {renderColorChip(gift.color, gift.color)}
+                                  <div className="steal-title">Class {gift.gift_class}</div>
+                                  <span
+                                    className={`lock-badge ${
+                                      gift.sealed ? 'lock-badge--sealed' : ''
+                                    }`}
+                                  >
+                                    Locks {gift.locks}
+                                  </span>
+                                </div>
+                                <div className="steal-cost">
+                                  <span className="cost-chip cost-chip--mini">
+                                    {GIFT_COSTS[gift.gift_class].total} mana
+                                  </span>
+                                  <span
+                                    className={`cost-chip cost-chip--mini cost-chip--color card-chip--${gift.color}`}
+                                  >
+                                    {GIFT_COSTS[gift.gift_class].color} {gift.color}
+                                  </span>
+                                  <span className="cost-chip cost-chip--mini">
+                                    Discard {discardNeeded}
+                                  </span>
+                                </div>
+                                <button
+                                  type="button"
+                                  className="primary"
+                                  disabled={gift.sealed || isActionBlocked || !canDiscard}
+                                  onClick={() => startStealSelection(gift)}
+                                >
+                                  {gift.sealed ? 'Sealed' : 'Steal'}
+                                </button>
+                                {!canDiscard ? (
+                                  <span className="muted">Not enough cards to discard.</span>
+                                ) : null}
+                              </div>
+                            );
+                          })
                         : null}
                     </li>
                   ))}
                 </ul>
-              </div>
+              </aside>
 
-              <div className="game-section">
-                <h3>Gifts on the Table</h3>
-                <div className="gift-grid">
-                  {activeGame.gifts_display.map((gift) => (
-                    <div key={gift.gift_id} className="gift-card">
-                      <div className="gift-title">
-                        {gift.color} Gift · Class {gift.gift_class}
-                      </div>
-                      <div className="gift-meta">Locks {gift.locks}</div>
-                      {isMyTurn ? (
-                        <button
-                          type="button"
-                          className="primary"
-                          disabled={activeGame.turn.has_taken_action}
-                          onClick={() => sendGameAction('claim_gift', { gift_id: gift.gift_id })}
-                        >
-                          Claim
-                        </button>
-                      ) : null}
+              <div className="game-main">
+                <div className="game-top">
+                  <div className="game-section">
+                    <h3>Gifts on the Table</h3>
+                    <div className="gift-grid">
+                      {activeGame.gifts_display.map((gift) => {
+                        const cost = GIFT_COSTS[gift.gift_class];
+                        return (
+                          <div key={gift.gift_id} className="gift-card">
+                            <div className="gift-title">
+                              {renderColorChip(gift.color, gift.color)}
+                              <span>Class {gift.gift_class}</span>
+                            </div>
+                            <div className="gift-meta">Locks {gift.locks}</div>
+                            {renderCostRow(cost.total, cost.color, gift.color)}
+                            <button
+                              type="button"
+                              className="primary"
+                              disabled={!isMyTurn || isActionBlocked}
+                              onClick={() => sendGameAction('claim_gift', { gift_id: gift.gift_id })}
+                            >
+                              Claim
+                            </button>
+                          </div>
+                        );
+                      })}
                     </div>
-                  ))}
-                </div>
-              </div>
+                  </div>
 
-              <div className="game-section">
-                <h3>Your Zone</h3>
-                <div className="zone-block">
-                  <div className="zone-label">Hand</div>
-                  <div className="hand-row">
-                    {myHand.length === 0 ? (
-                      <span className="muted">Empty</span>
-                    ) : (
-                      myHand.map((card, index) => (
-                        <button
-                          key={`${card}-${index}`}
-                          type="button"
-                          className="pill"
-                          disabled={!isMyTurn || activeGame.turn.has_played_land}
-                          onClick={() => sendGameAction('play_land', { index })}
-                        >
-                          {card}
-                        </button>
-                      ))
-                    )}
-                  </div>
-                </div>
-                <div className="zone-block">
-                  <div className="zone-label">Lands in play</div>
-                  <div className="land-row">
-                    {myLands.length === 0 ? (
-                      <span className="muted">No lands yet.</span>
-                    ) : (
-                      myLands.map((land, index) => (
-                        <span key={`${land.color}-${index}`} className="pill">
-                          {land.color} {land.tapped ? '(tapped)' : ''}
-                        </span>
-                      ))
-                    )}
-                  </div>
-                </div>
-                <div className="zone-block">
-                  <div className="zone-label">Building</div>
-                  <div className="land-row">
-                    {myBuilding ? (
-                      <span className="pill pill--host">{BUILDING_LABELS[myBuilding]}</span>
-                    ) : (
-                      <span className="muted">None</span>
-                    )}
-                  </div>
-                </div>
-                <div className="zone-block">
-                  <div className="zone-label">Your gifts</div>
-                  <div className="land-row">
-                    {myGifts.length === 0 ? (
-                      <span className="muted">No gifts yet.</span>
-                    ) : (
-                      myGifts.map((gift) => (
-                        <button
-                          key={gift.gift_id}
-                          type="button"
-                          className="pill"
-                          disabled={!isMyTurn || activeGame.turn.has_taken_action}
-                          onClick={() => sendGameAction('wrap_gift', { gift_id: gift.gift_id })}
-                        >
-                          Wrap {gift.color} {gift.gift_class}
-                        </button>
-                      ))
-                    )}
-                  </div>
-                </div>
-              </div>
-
-              <div className="game-section">
-                <h3>Actions</h3>
-                {gameError ? <div className="room-error">{gameError}</div> : null}
-                <div className="room-actions">
-                  <button
-                    type="button"
-                    className="primary"
-                    disabled={!isMyTurn || activeGame.turn.has_taken_action}
-                    onClick={() => sendGameAction('draw_extra')}
-                  >
-                    Draw extra
-                  </button>
-                  <div className="select-row">
-                    <select
-                      value={selectedBuilding}
-                      onChange={(event) => setSelectedBuilding(event.target.value)}
-                      disabled={!!myBuilding}
-                    >
-                      {buildings.map((building) => (
-                        <option key={building} value={building}>
-                          {BUILDING_LABELS[building]}
-                        </option>
+                  <div className="game-section">
+                    <h3>Buildings</h3>
+                    <div className="building-list">
+                      {BUILDING_INFO.map((building) => (
+                        <div key={building.key} className="building-card">
+                          <div className="building-header">
+                            {renderColorChip(building.color, building.color)}
+                            <div>
+                              <div className="building-name">{building.name}</div>
+                              <div className="building-meta">{building.effect}</div>
+                            </div>
+                          </div>
+                          {renderCostRow(BUILDING_COST.total, BUILDING_COST.color, building.color)}
+                          <button
+                            type="button"
+                            className="ghost"
+                            disabled={!!myBuilding || isActionBlocked}
+                            onClick={() =>
+                              sendGameAction('build_building', { building: building.key })
+                            }
+                          >
+                            {myBuilding === building.key ? 'Built' : 'Build'}
+                          </button>
+                        </div>
                       ))}
-                    </select>
-                    <button
-                      type="button"
-                      className="ghost"
-                      disabled={!isMyTurn || activeGame.turn.has_taken_action || !!myBuilding}
-                      onClick={() => sendGameAction('build_building', { building: selectedBuilding })}
-                    >
-                      Build
-                    </button>
+                    </div>
                   </div>
-                  <button
-                    type="button"
-                    className="ghost"
-                    disabled={!isMyTurn}
-                    onClick={() => sendGameAction('end_turn')}
-                  >
-                    End turn
-                  </button>
                 </div>
-                <p className="muted">Pick cards in your hand to play a land.</p>
+
+                <div className="game-bottom">
+                  <div className="game-section">
+                    <h3>Your Zone</h3>
+                    <div className="zone-block">
+                      <div className="zone-label">Hand</div>
+                      <div className="hand-row">
+                        {myHand.length === 0 ? (
+                          <span className="muted">Empty</span>
+                        ) : (
+                          myHand.map((card, index) => (
+                            <button
+                              key={`${card}-${index}`}
+                              type="button"
+                              className={`card-chip card-chip--${card}`}
+                              disabled={isLandBlocked}
+                              onClick={() => sendGameAction('play_land', { index })}
+                            >
+                              {card} land
+                            </button>
+                          ))
+                        )}
+                      </div>
+                      <div className="cost-note">Play 1 land per turn.</div>
+                    </div>
+                    <div className="zone-block">
+                      <div className="zone-label">Lands in play</div>
+                      <div className="land-row">
+                        {myLands.length === 0 ? (
+                          <span className="muted">No lands yet.</span>
+                        ) : (
+                          myLands.map((land, index) => (
+                            <span
+                              key={`${land.color}-${index}`}
+                              className={`card-chip card-chip--${land.color} ${
+                                land.tapped ? 'card-chip--tapped' : ''
+                              }`}
+                            >
+                              {land.color}
+                            </span>
+                          ))
+                        )}
+                      </div>
+                    </div>
+                    <div className="zone-block">
+                      <div className="zone-label">Building</div>
+                      <div className="land-row">
+                        {myBuilding ? (
+                          <span className="pill pill--host">{BUILDING_LABELS[myBuilding]}</span>
+                        ) : (
+                          <span className="muted">None</span>
+                        )}
+                      </div>
+                    </div>
+                    <div className="zone-block">
+                      <div className="zone-label">Your gifts</div>
+                      <div className="land-row">
+                        {myGifts.length === 0 ? (
+                          <span className="muted">No gifts yet.</span>
+                        ) : (
+                          myGifts.map((gift) => (
+                            <button
+                              key={gift.gift_id}
+                              type="button"
+                              className={`card-chip card-chip--${gift.color}`}
+                              disabled={isActionBlocked}
+                              onClick={() => sendGameAction('wrap_gift', { gift_id: gift.gift_id })}
+                            >
+                              {gift.color} {gift.gift_class} · Wrap (2 mana)
+                            </button>
+                          ))
+                        )}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="game-section">
+                    <h3>Actions</h3>
+                    {gameError ? <div className="room-error">{gameError}</div> : null}
+                    {stealSelection ? (
+                      <div className="discard-panel">
+                        <div className="discard-header">
+                          <h4>Steal: discard {stealSelection.required}</h4>
+                          <p className="muted">
+                            Pick {stealSelection.required} cards to discard.
+                          </p>
+                        </div>
+                        <div className="discard-grid">
+                          {myHand.map((card, index) => {
+                            const isSelected = stealSelection.selected.includes(index);
+                            return (
+                              <button
+                                key={`${card}-${index}-steal-discard`}
+                                type="button"
+                                className={`card-chip card-chip--${card} ${
+                                  isSelected ? 'card-chip--selected' : ''
+                                }`}
+                                disabled={!isMyTurn}
+                                onClick={() => toggleStealDiscard(index)}
+                              >
+                                {isSelected ? 'Selected' : 'Discard'} {card}
+                              </button>
+                            );
+                          })}
+                        </div>
+                        <div className="room-actions">
+                          <button
+                            type="button"
+                            className="primary"
+                            disabled={stealSelection.selected.length !== stealSelection.required}
+                            onClick={confirmSteal}
+                          >
+                            Confirm steal
+                          </button>
+                          <button
+                            type="button"
+                            className="ghost"
+                            onClick={() => setStealSelection(null)}
+                          >
+                            Cancel
+                          </button>
+                        </div>
+                      </div>
+                    ) : null}
+                    {pendingDiscard > 0 ? (
+                      <div className="discard-panel">
+                        <div className="discard-header">
+                          <h4>Discard 1 land</h4>
+                          <p className="muted">Select a card from your hand to discard.</p>
+                        </div>
+                        <div className="discard-grid">
+                          {myHand.map((card, index) => (
+                            <button
+                              key={`${card}-${index}-discard`}
+                              type="button"
+                              className={`card-chip card-chip--${card}`}
+                              disabled={!isMyTurn}
+                              onClick={() => sendGameAction('discard', { index })}
+                            >
+                              Discard {card}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    ) : null}
+                    <div className="room-actions">
+                      <button
+                        type="button"
+                        className="primary"
+                        disabled={isActionBlocked}
+                        onClick={() => sendGameAction('recycle')}
+                      >
+                        Recycle (draw then discard)
+                      </button>
+                      <button
+                        type="button"
+                        className="ghost"
+                        disabled={!isMyTurn || pendingDiscard > 0}
+                        onClick={() => sendGameAction('end_turn')}
+                      >
+                        End turn
+                      </button>
+                    </div>
+                    <p className="muted">
+                      Main actions consume your action for the turn. Discard before ending turn.
+                    </p>
+                  </div>
+                </div>
               </div>
             </div>
           </section>

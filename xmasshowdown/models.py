@@ -39,6 +39,7 @@ class PlayerState:
     lands_in_play: List[LandInPlay] = field(default_factory=list)
     gifts: List[Gift] = field(default_factory=list)
     building: Optional[BuildingType] = None
+    pending_discard: int = 0
 
     @property
     def score(self) -> int:

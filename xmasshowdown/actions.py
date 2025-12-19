@@ -48,7 +48,20 @@ class StealGiftAction(GameAction):
         if not gift_id:
             raise GameRuleError("Missing gift id.")
         add_lock = bool(context.payload.get("add_lock", False))
-        engine.steal_gift(context.player_id, str(gift_id), add_lock=add_lock)
+        discard_indices = context.payload.get("discard_indices")
+        if discard_indices is not None:
+            if not isinstance(discard_indices, list):
+                raise GameRuleError("Discard indices must be a list.")
+            try:
+                discard_indices = [int(index) for index in discard_indices]
+            except (TypeError, ValueError) as exc:
+                raise GameRuleError("Discard indices must be integers.") from exc
+        engine.steal_gift(
+            context.player_id,
+            str(gift_id),
+            add_lock=add_lock,
+            discard_indices=discard_indices,
+        )
 
 
 class WrapGiftAction(GameAction):
@@ -75,11 +88,21 @@ class BuildBuildingAction(GameAction):
         engine.build_building(context.player_id, building)
 
 
-class DrawExtraAction(GameAction):
-    name = "draw_extra"
+class RecycleAction(GameAction):
+    name = "recycle"
 
     def apply(self, engine, context: ActionContext) -> None:
-        engine.draw_extra(context.player_id)
+        engine.recycle(context.player_id)
+
+
+class DiscardAction(GameAction):
+    name = "discard"
+
+    def apply(self, engine, context: ActionContext) -> None:
+        index = context.payload.get("index")
+        if index is None:
+            raise GameRuleError("Missing discard index.")
+        engine.discard_from_hand(context.player_id, int(index))
 
 
 class EndTurnAction(GameAction):
@@ -95,6 +118,7 @@ ACTION_REGISTRY: Dict[str, Type[GameAction]] = {
     StealGiftAction.name: StealGiftAction,
     WrapGiftAction.name: WrapGiftAction,
     BuildBuildingAction.name: BuildBuildingAction,
-    DrawExtraAction.name: DrawExtraAction,
+    RecycleAction.name: RecycleAction,
+    DiscardAction.name: DiscardAction,
     EndTurnAction.name: EndTurnAction,
 }
